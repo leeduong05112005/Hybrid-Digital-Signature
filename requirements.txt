@@ -1,7 +1,0 @@
-flask
-cryptography
-pycryptodome
-pynacl
-oqs
-requests  
-liboqs-python>=0.10.0
