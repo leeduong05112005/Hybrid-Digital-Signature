@@ -135,14 +135,14 @@ document.getElementById('verify-form').addEventListener('submit', async (e) => {
       <div class="flex justify-between items-center border-b border-slate-200 py-2 last:border-0">
         <span class="text-sm font-semibold">${index + 1}. Thuật toán ${r.alg} <span class="text-[10px] text-slate-400 font-normal ml-2">(Key: ${r.key_id.substring(0,8)}...)</span></span>
         <span class="${r.valid ? 'text-emerald-600' : 'text-red-600'} font-bold">
-          ${r.valid ? '<i class="fa-solid fa-check mr-1"></i> Hợp lệ' : `<i class="fa-solid fa-xmark mr-1"></i> Lỗi: ${r.reason}`}
+          ${r.valid ? '<i class="fa-solid fa-check mr-1"></i> Hợp lệ' : `<i class="fa-solid fa-xmark mr-1"></i> Không hợp lệ`}
         </span>
       </div>
     `).join('');
 
     result.innerHTML = `
     <div class="p-6 ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'} border rounded-2xl shadow-sm transition-all">
-      <p class="font-black text-2xl mb-1">${ok ? "✔ TÀI LIỆU CHUẨN XÁC" : "✖ TÀI LIỆU KHÔNG HỢP LỆ"}</p>
+      <p class="font-black text-2xl mb-1">${ok ? "✔ CHỮ KÝ HỢP LỆ" : "✖ CHỮ KÝ KHÔNG HỢP LỆ"}</p>
       
       ${!ok && lyDoTuChoi ? `<p class="text-sm mb-5 font-semibold text-red-700 bg-red-100 p-3 rounded-lg"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Lý do: ${lyDoTuChoi}</p>` : '<div class="mb-5"></div>'}
 

@@ -20,7 +20,7 @@ def tao_thong_tin_ky(du_lieu: bytes, thuat_toan_bam: str, ten_tep_goc: str = "",
         "artifact_version": PHIEN_BAN,
         "message_b64": b64e(du_lieu),
         "integrity_digest_hex": compute_integrity_digest(du_lieu, thuat_toan_bam, length=32).hex(),
-        "integrity_hash_algorithm": thuat_toan_bam,
+        "int_hash_algorithm": thuat_toan_bam,
         "payload_size": len(du_lieu),
         "original_filename": ten_tep_goc or "",
         "file_type": file_type or "application/octet-stream",
@@ -65,7 +65,7 @@ class KetQuaKy:
             "artifact_version": self.phien_ban,
             "message_b64": self.message_b64,
             "integrity_digest_hex": self.ma_bam_toan_ven,
-            "integrity_hash_algorithm": self.thuat_toan_bam,
+            "int_hash_algorithm": self.thuat_toan_bam,
             "payload_size": self.dulieu_size,
             "original_filename": self.ten_tep_goc,
             "file_type": self.file_type,
@@ -87,7 +87,7 @@ def ky_dulieu(du_lieu: bytes, thuat_toan_bam: str, ten_tep_goc: str = "", file_t
         signatures=signature_moi,
         signature_size=kich_thuoc,
         thoi_gian_ky_ms=round((time.time() - time_start) * 1000, 2),
-        thuat_toan_bam=thong_tin["integrity_hash_algorithm"],
+        thuat_toan_bam=thong_tin["int_hash_algorithm"],
         dulieu_size=thong_tin["payload_size"],
         ten_tep_goc=thong_tin["original_filename"],
         file_type=thong_tin["file_type"],
@@ -104,7 +104,7 @@ def them_signature(du_lieu_signature: bytes) -> dict:
         "artifact_version": dulieu_json.get("artifact_version", PHIEN_BAN),
         "message_b64": dulieu_json["message_b64"],
         "integrity_digest_hex": dulieu_json["integrity_digest_hex"],
-        "integrity_hash_algorithm": dulieu_json.get("integrity_hash_algorithm", "shake256"),
+        "int_hash_algorithm": dulieu_json.get("int_hash_algorithm", "shake256"),
         "payload_size": dulieu_json.get("payload_size", len(b64d(dulieu_json["message_b64"]))),
         "original_filename": dulieu_json.get("original_filename", ""),
         "file_type": dulieu_json.get("file_type", "application/octet-stream"),
@@ -130,7 +130,7 @@ def xac_thuc_signature(du_lieu_signature: bytes, du_lieu_goc: bytes, danh_sach_k
     if dulieu_json.get("payload_size") not in (None, len(du_lieu_goc)):
         return False, {"Lí do": "Kích thước của tài liệu đã bị thay đổi"}
         
-    thuat_toan_bam = dulieu_json.get("integrity_hash_algorithm", "shake256")
+    thuat_toan_bam = dulieu_json.get("int_hash_algorithm", "shake256")
     if compute_integrity_digest(du_lieu_goc, thuat_toan_bam, length=32).hex() != dulieu_json.get("integrity_digest_hex"):
         return False, {"Lí do": "Dữ liệu đã bị can thiệp (Mã kiểm tra không khớp)"}
         
@@ -138,7 +138,7 @@ def xac_thuc_signature(du_lieu_signature: bytes, du_lieu_goc: bytes, danh_sach_k
         "artifact_version": dulieu_json.get("artifact_version", PHIEN_BAN),
         "message_b64": dulieu_json.get("message_b64", ""),
         "integrity_digest_hex": dulieu_json.get("integrity_digest_hex", ""),
-        "integrity_hash_algorithm": thuat_toan_bam,
+        "int_hash_algorithm": thuat_toan_bam,
         "payload_size": dulieu_json.get("payload_size", len(du_lieu_goc)),
         "original_filename": dulieu_json.get("original_filename", ""),
         "file_type": dulieu_json.get("file_type", "application/octet-stream"),
