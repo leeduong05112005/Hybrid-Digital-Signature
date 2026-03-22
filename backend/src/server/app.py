@@ -187,16 +187,15 @@ def api_verify():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @app.route("/outputs/<path:filename>")
 def download_output(filename):
     return send_from_directory(str(OUTPUTS_DIR), filename, as_attachment=True)
-
 
 @app.route("/api/pubkey/<key_id>")
 def download_pubkey(key_id):
     try:
         pubkeys = key_manager.get_public_keys(key_id)
+        pubkeys["key_id"] = key_id 
         return app.response_class(
             response=json.dumps(pubkeys, indent=2, ensure_ascii=False),
             status=200,

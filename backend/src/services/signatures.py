@@ -258,18 +258,18 @@ def verify_artifact(
             continue
 
         pub = None
-
+        
         if external_pubkeys:
             for k in external_pubkeys:
                 if k.get("key_id") == key_id:
                     pub = k
                     break
-
+        
         if not pub:
             try:
                 pub = key_manager.get_public_keys(key_id)
             except Exception:
-                pub = None
+                pass
 
         if not pub:
             results.append({
@@ -317,7 +317,6 @@ def verify_artifact(
         "verification_time_ms": verification_time_ms,
         "signature_size": data.get("signature_size", 0),
     }
-
 
 def save_artifact(artifact: SignatureArtifact, output_dir: Path, stem: str) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
