@@ -4,74 +4,68 @@ from dataclasses import dataclass
 
 try:
     import oqs
-    # Test if OQS actually works (not just importable)
     try:
         with oqs.Signature("Dilithium2") as test_sig:
             pass
-        OQS_AVAILABLE = True
-        OQS_ERROR = ""
+        co_san_thu_vien = True
+        loi_thu_vien = ""
     except Exception as e:
         oqs = None
-        OQS_AVAILABLE = False
-        OQS_ERROR = f"liboqs native library not available: {e}"
+        co_san_thu_vien = False
+        loi_thu_vien = f"Thư viện lõi liboqs không khả dụng: {e}"
 except Exception as e:
     oqs = None
-    OQS_AVAILABLE = False
-    OQS_ERROR = f"liboqs-python not installed or import failed: {e}"
-
+    co_san_thu_vien = False
+    loi_thu_vien = f"Chưa cài liboqs-python hoặc bị lỗi: {e}"
 
 @dataclass
-class DilithiumKeyPair:
-    private_key: bytes
-    public_key: bytes
-    algorithm: str = 'Dilithium2'
+class cap_khoa_dilithium:
+    khoa_bi_mat: bytes
+    khoa_cong_khai: bytes
+    ten_thuat_toan: str = 'Dilithium2'
 
-
-def is_available() -> bool:
+def thu_vien_da_san_sang() -> bool:
     return oqs is not None and hasattr(oqs, 'Signature')
 
+def loi_can_cai_dat() -> str:
+    return 'Thuật toán Dilithium cần liboqs-python và thư viện nền liboqs. Hãy cài đặt bằng lệnh: pip install liboqs-python'
+def tao_cap_khoa_dilithium(ten_thuat_toan: str = 'Dilithium2') -> cap_khoa_dilithium:
+    if oqs is None:  
+        raise RuntimeError(loi_can_cai_dat())
+        
+    with oqs.Signature(ten_thuat_toan) as bo_cong_cu_ky:
+        khoa_cong_khai_moi = bo_cong_cu_ky.generate_keypair()
+        khoa_bi_mat_moi = bo_cong_cu_ky.export_secret_key()
+        
+    return cap_khoa_dilithium(
+        khoa_bi_mat=khoa_bi_mat_moi, 
+        khoa_cong_khai=khoa_cong_khai_moi, 
+        ten_thuat_toan=ten_thuat_toan
+    )
 
-def requirement_message() -> str:
-    return 'Dilithium cần liboqs-python và thư viện native liboqs. Cài bằng: pip install liboqs-python'
+def tao_chu_ky(khoa_bi_mat: bytes, du_lieu_can_ky: bytes, ten_thuat_toan: str = 'Dilithium2') -> bytes:
+    if oqs is None:
+        raise RuntimeError(loi_can_cai_dat())
+        
+    with oqs.Signature(ten_thuat_toan, secret_key=khoa_bi_mat) as bo_cong_cu_ky:
+        return bo_cong_cu_ky.sign(du_lieu_can_ky)
+def kiem_tra_chu_ky(khoa_cong_khai: bytes, du_lieu_goc: bytes, chu_ky: bytes, ten_thuat_toan: str = 'Dilithium2') -> bool:
+    if oqs is None: 
+        raise RuntimeError(loi_can_cai_dat())
+        
+    with oqs.Signature(ten_thuat_toan) as bo_cong_cu_kiem_tra:
+        return bool(bo_cong_cu_kiem_tra.verify(du_lieu_goc, chu_ky, khoa_cong_khai))
 
+def bien_khoa_cong_khai_thanh_chu(khoa_cong_khai: bytes) -> str:
+    return base64.b64encode(khoa_cong_khai).decode('ascii')
+def doc_khoa_cong_khai_tu_chu(chu_chua_khoa: str) -> bytes:
+    return base64.b64decode(chu_chua_khoa.encode('ascii'))
 
-def generate_dilithium(algorithm: str = 'Dilithium2') -> DilithiumKeyPair:
-    if not is_available():
-        raise RuntimeError(requirement_message())
-    with oqs.Signature(algorithm) as signer:
-        public_key = signer.generate_keypair()
-        secret_key = signer.export_secret_key()
-    return DilithiumKeyPair(private_key=secret_key, public_key=public_key, algorithm=algorithm)
+def dam_bao_thu_vien_hoat_dong():
+    if not co_san_thu_vien:
+        raise RuntimeError(f"Thuật toán Dilithium chưa sẵn sàng: {loi_thu_vien}")
+def bien_khoa_bi_mat_thanh_chu_hex(khoa_bi_mat: bytes) -> str:
+    return khoa_bi_mat.hex()
 
-
-def sign(private_key: bytes, message: bytes, algorithm: str = 'Dilithium2') -> bytes:
-    if not is_available():
-        raise RuntimeError(requirement_message())
-    with oqs.Signature(algorithm, secret_key=private_key) as signer:
-        return signer.sign(message)
-
-
-def verify(public_key: bytes, message: bytes, signature: bytes, algorithm: str = 'Dilithium2') -> bool:
-    if not is_available():
-        raise RuntimeError(requirement_message())
-    with oqs.Signature(algorithm) as verifier:
-        return bool(verifier.verify(message, signature, public_key))
-
-
-def export_public_key(public_key: bytes) -> str:
-    return base64.b64encode(public_key).decode('ascii')
-
-
-def load_public_key(public_key_b64: str) -> bytes:
-    return base64.b64decode(public_key_b64.encode('ascii'))
-
-def ensure_oqs():
-    if not OQS_AVAILABLE:
-        raise RuntimeError(f"Dilithium chưa sẵn sàng: {OQS_ERROR}")
-# thêm mới
-def export_private_key_hex(private_key: bytes) -> str:
-    return private_key.hex()
-
-
-def load_private_key_hex(private_key_hex: str) -> bytes:
-    return bytes.fromhex(private_key_hex)
+def doc_khoa_bi_mat_tu_chu_hex(chu_chua_khoa_hex: str) -> bytes:
+    return bytes.fromhex(chu_chua_khoa_hex)

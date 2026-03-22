@@ -10,83 +10,85 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from .utils import kdf_shake256
 
 @dataclass
-class Ed25519KeyPair:
-    private_key: ed25519.Ed25519PrivateKey
-    public_key: ed25519.Ed25519PublicKey
+class cap_khoa_ed25519:
+    khoa_bi_mat: ed25519.Ed25519PrivateKey
+    khoa_cong_khai: ed25519.Ed25519PublicKey
 
-def generate_ed25519() -> Ed25519KeyPair:
-    priv = ed25519.Ed25519PrivateKey.generate()
-    return Ed25519KeyPair(private_key=priv, public_key=priv.public_key())
+def tao_cap_khoa_ed25519() -> cap_khoa_ed25519:
+    khoa_bi_mat_moi = ed25519.Ed25519PrivateKey.generate()
+    return cap_khoa_ed25519(
+        khoa_bi_mat=khoa_bi_mat_moi, 
+        khoa_cong_khai=khoa_bi_mat_moi.public_key()
+    )
 
-def sign(private_key: ed25519.Ed25519PrivateKey, message: bytes) -> bytes:
-    return private_key.sign(message)
+def tao_chu_ky(khoa_bi_mat: ed25519.Ed25519PrivateKey, du_lieu_can_ky: bytes) -> bytes:
+    return khoa_bi_mat.sign(du_lieu_can_ky)
 
-def verify(public_key: ed25519.Ed25519PublicKey, message: bytes, signature: bytes) -> bool:
+def kiem_tra_chu_ky(khoa_cong_khai: ed25519.Ed25519PublicKey, du_lieu_goc: bytes, chu_ky: bytes) -> bool:
     try:
-        public_key.verify(signature, message)
-        return True
+        khoa_cong_khai.verify(chu_ky, du_lieu_goc)
+        return True 
     except Exception:
         return False
 
-# For encryption, use X25519 key agreement + AES-GCM
 @dataclass
-class X25519KeyPair:
-    private_key: x25519.X25519PrivateKey
-    public_key: x25519.X25519PublicKey
+class cap_khoa_x25519:
+    khoa_bi_mat: x25519.X25519PrivateKey
+    khoa_cong_khai: x25519.X25519PublicKey
 
-def generate_x25519() -> X25519KeyPair:
-    priv = x25519.X25519PrivateKey.generate()
-    return X25519KeyPair(private_key=priv, public_key=priv.public_key())
+def tao_cap_khoa_x25519() -> cap_khoa_x25519:
+    khoa_bi_mat_moi = x25519.X25519PrivateKey.generate()
+    return cap_khoa_x25519(
+        khoa_bi_mat=khoa_bi_mat_moi, 
+        khoa_cong_khai=khoa_bi_mat_moi.public_key()
+    )
 
-def encrypt_aesgcm_x25519(plaintext: bytes,
-                          receiver_public_key: x25519.X25519PublicKey,
-                          aad: bytes=b"") -> Tuple[bytes, bytes, bytes]:
-    eph_priv = x25519.X25519PrivateKey.generate()
-    shared = eph_priv.exchange(receiver_public_key)
-    key = hkdf_sha256(shared, salt=b"x25519", info=b"aesgcm", length=32)
-    aesgcm = AESGCM(key)
-    nonce = os.urandom(12)
-    ct = aesgcm.encrypt(nonce, plaintext, aad)
-    eph_pub_bytes = eph_priv.public_key().public_bytes(
+def ma_hoa_du_lieu(du_lieu_ro: bytes, khoa_cong_khai_nguoi_nhan: x25519.X25519PublicKey, du_lieu_dinh_kem: bytes=b"") -> Tuple[bytes, bytes, bytes]:
+    khoa_bi_mat_tam_thoi = x25519.X25519PrivateKey.generate()
+    
+    chia_khoa_chung = khoa_bi_mat_tam_thoi.exchange(khoa_cong_khai_nguoi_nhan)
+    chia_khoa_ma_hoa = kdf_shake256(chia_khoa_chung, salt=b"x25519", info=b"aesgcm", length=32)
+    
+    o_khoa = AESGCM(chia_khoa_ma_hoa)
+    so_ngau_nhien = os.urandom(12)
+    du_lieu_da_ma_hoa = o_khoa.encrypt(so_ngau_nhien, du_lieu_ro, du_lieu_dinh_kem)
+    
+    khoa_cong_khai_tam_thoi = khoa_bi_mat_tam_thoi.public_key().public_bytes(
         encoding=serialization.Encoding.Raw,
         format=serialization.PublicFormat.Raw
     )
-    return eph_pub_bytes, nonce, ct
+    return khoa_cong_khai_tam_thoi, so_ngau_nhien, du_lieu_da_ma_hoa
 
-def decrypt_aesgcm_x25519(ciphertext: bytes,
-                          receiver_private_key: x25519.X25519PrivateKey,
-                          eph_pub_bytes: bytes,
-                          nonce: bytes,
-                          aad: bytes=b"") -> bytes:
-    eph_pub = x25519.X25519PublicKey.from_public_bytes(eph_pub_bytes)
-    shared = receiver_private_key.exchange(eph_pub)
-    key = hkdf_sha256(shared, salt=b"x25519", info=b"aesgcm", length=32)
-    aesgcm = AESGCM(key)
-    return aesgcm.decrypt(nonce, ciphertext, aad)
+def giai_ma_du_lieu(du_lieu_da_ma_hoa: bytes, khoa_bi_mat_nguoi_nhan: x25519.X25519PrivateKey, khoa_cong_khai_tam_thoi: bytes, so_ngau_nhien: bytes, du_lieu_dinh_kem: bytes=b"") -> bytes:
+    khoa_tam_thoi = x25519.X25519PublicKey.from_public_bytes(khoa_cong_khai_tam_thoi)
+    chia_khoa_chung = khoa_bi_mat_nguoi_nhan.exchange(khoa_tam_thoi)
+    chia_khoa_ma_hoa = kdf_shake256(chia_khoa_chung, salt=b"x25519", info=b"aesgcm", length=32)
+    
+    o_khoa = AESGCM(chia_khoa_ma_hoa)
+    return o_khoa.decrypt(so_ngau_nhien, du_lieu_da_ma_hoa, du_lieu_dinh_kem)
 
-
-def export_public_pem(public_key: ed25519.Ed25519PublicKey) -> bytes:
-    return public_key.public_bytes(
+def xuat_khoa_cong_khai_ra_chu(khoa_cong_khai: ed25519.Ed25519PublicKey) -> bytes:
+    return khoa_cong_khai.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
-def export_private_pem(private_key: ed25519.Ed25519PrivateKey, password: bytes | None = None) -> bytes:
-    enc = serialization.NoEncryption() if password is None else serialization.BestAvailableEncryption(password)
-    return private_key.private_bytes(
+def xuat_khoa_bi_mat_ra_chu(khoa_bi_mat: ed25519.Ed25519PrivateKey, mat_khau_bao_ve: bytes | None = None) -> bytes:
+    cach_bao_ve = serialization.NoEncryption() if mat_khau_bao_ve is None else serialization.BestAvailableEncryption(mat_khau_bao_ve)
+    return khoa_bi_mat.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=enc
+        encryption_algorithm=cach_bao_ve
     )
 
-def load_public_pem(pem: bytes) -> ed25519.Ed25519PublicKey:
-    pk = serialization.load_pem_public_key(pem)
-    if not isinstance(pk, ed25519.Ed25519PublicKey):
-        raise TypeError("Invalid public key type")
-    return pk
+def doc_khoa_cong_khai_tu_chu(chu_chua_khoa: bytes) -> ed25519.Ed25519PublicKey:
+    khoa = serialization.load_pem_public_key(chu_chua_khoa)
+    if not isinstance(khoa, ed25519.Ed25519PublicKey):
+        raise TypeError("Loại khóa công khai không hợp lệ")
+    return khoa
 
-def load_private_pem(pem: bytes, password: bytes | None = None) -> ed25519.Ed25519PrivateKey:
-    sk = serialization.load_pem_private_key(pem, password=password)
-    if not isinstance(sk, ed25519.Ed25519PrivateKey):
-        raise TypeError("Invalid private key type")
-    return sk
+def doc_khoa_bi_mat_tu_chu(chu_chua_khoa: bytes, mat_khau_bao_ve: bytes | None = None) -> ed25519.Ed25519PrivateKey:
+    khoa = serialization.load_pem_private_key(chu_chua_khoa, password=mat_khau_bao_ve)
+    if not isinstance(khoa, ed25519.Ed25519PrivateKey):
+        raise TypeError("Loại khóa bí mật không hợp lệ")
+    return khoa

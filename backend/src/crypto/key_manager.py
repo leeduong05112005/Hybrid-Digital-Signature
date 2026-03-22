@@ -6,109 +6,109 @@ from typing import Optional
 
 from src.crypto import dilithium_impl, ed25519_impl
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-LOG_DIR = BASE_DIR / "logs"
-KEY_STORE_FILE = LOG_DIR / "key_store.json"
-AUDIT_FILE = LOG_DIR / "key_audit.log"
+THUMUC_GOC = Path(__file__).resolve().parents[2]
+THUMUC_NHATKY = THUMUC_GOC / "logs"
+TEP_LUU_KHOA = THUMUC_NHATKY / "key_store.json"
+TEP_NHATKY_HOAT_DONG = THUMUC_NHATKY / "key_audit.log"
 
-DEFAULT_SIGNING_KEY_ID = "public_key"
+ID_KHOA_MAC_DINH = "public_key"
 
 
-def _utc_now() -> str:
+def _lay_gio_hien_tai_utc() -> str:
+    """Lấy giờ hiện tại chuẩn quốc tế để ghi nhận thời gian tạo khóa."""
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _ensure_storage():
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
-    if not KEY_STORE_FILE.exists():
-        KEY_STORE_FILE.write_text(json.dumps({"keys": {}, "active_key_id": None}, indent=2), encoding="utf-8")
-    if not AUDIT_FILE.exists():
-        AUDIT_FILE.write_text("", encoding="utf-8")
+def _dam_bao_noi_luu_tru():
+    THUMUC_NHATKY.mkdir(parents=True, exist_ok=True)
+    if not TEP_LUU_KHOA.exists():
+        TEP_LUU_KHOA.write_text(json.dumps({"danh_sach_khoa": {}, "id_khoa_dang_dung": None}, indent=2), encoding="utf-8")
+    if not TEP_NHATKY_HOAT_DONG.exists():
+        TEP_NHATKY_HOAT_DONG.write_text("", encoding="utf-8")
 
 
-def _load_store() -> dict:
-    _ensure_storage()
-    return json.loads(KEY_STORE_FILE.read_text(encoding="utf-8"))
+def _doc_du_lieu_luu_tru() -> dict:
+    _dam_bao_noi_luu_tru()
+    return json.loads(TEP_LUU_KHOA.read_text(encoding="utf-8"))
 
 
-def _save_store(data: dict):
-    KEY_STORE_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+def _luu_du_lieu(du_lieu: dict):
+    TEP_LUU_KHOA.write_text(json.dumps(du_lieu, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _append_audit(event: str):
-    with AUDIT_FILE.open("a", encoding="utf-8") as f:
-        f.write(f"[{_utc_now()}] {event}\n")
+def _ghi_nhat_ky(su_kien: str):
+    with TEP_NHATKY_HOAT_DONG.open("a", encoding="utf-8") as f:
+        f.write(f"[{_lay_gio_hien_tai_utc()}] {su_kien}\n")
 
 
-def create_initial_keypair(key_id: str = DEFAULT_SIGNING_KEY_ID, dilithium_algorithm: str = "Dilithium2"):
-    """
-    Chỉ dùng 1 lần để khởi tạo khóa cho trường.
-    Không gọi lại mỗi lần ký.
-    """
-    store = _load_store()
-    if key_id in store["keys"]:
+def tao_cap_khoa_ban_dau(id_khoa: str = ID_KHOA_MAC_DINH, ten_thuat_toan_di: str = "Dilithium2"):
+    du_lieu_luu = _doc_du_lieu_luu_tru()
+    if id_khoa in du_lieu_luu.get("danh_sach_khoa", {}):
         return
 
-    kp_ed = ed25519_impl.generate_ed25519()
-    kp_di = dilithium_impl.generate_dilithium(dilithium_algorithm)
+    khoa_ed = ed25519_impl.tao_cap_khoa_ed25519()
+    khoa_di = dilithium_impl.tao_cap_khoa_dilithium(ten_thuat_toan_di)
 
-    ed_private_pem = ed25519_impl.export_private_pem(kp_ed.private_key).decode("utf-8")
-    ed_public_pem = ed25519_impl.export_public_pem(kp_ed.public_key).decode("utf-8")
-    di_private_b64 = kp_di.private_key.hex()
-    di_public_b64 = dilithium_impl.export_public_key(kp_di.public_key)
+    chu_khoa_bi_mat_ed = ed25519_impl.xuat_khoa_bi_mat_ra_chu(khoa_ed.khoa_bi_mat).decode("utf-8")
+    chu_khoa_cong_khai_ed = ed25519_impl.xuat_khoa_cong_khai_ra_chu(khoa_ed.khoa_cong_khai).decode("utf-8")
+    chu_khoa_bi_mat_di = khoa_di.khoa_bi_mat.hex()
+    chu_khoa_cong_khai_di = dilithium_impl.bien_khoa_cong_khai_thanh_chu(khoa_di.khoa_cong_khai)
 
-    store["keys"][key_id] = {
-        "created_at": _utc_now(),
-        "status": "active",
+    if "danh_sach_khoa" not in du_lieu_luu:
+        du_lieu_luu["danh_sach_khoa"] = {}
+
+    du_lieu_luu["danh_sach_khoa"][id_khoa] = {
+        "ngay_tao": _lay_gio_hien_tai_utc(),
+        "trang_thai": "dang_hoat_dong",
         "ed25519": {
-            "private_pem": ed_private_pem,
-            "public_pem": ed_public_pem,
+            "khoa_bi_mat_chu": chu_khoa_bi_mat_ed,
+            "khoa_cong_khai_chu": chu_khoa_cong_khai_ed,
         },
         "dilithium": {
-            "algorithm": dilithium_algorithm,
-            "private_hex": di_private_b64,
-            "public_b64": di_public_b64,
+            "ten_thuat_toan": ten_thuat_toan_di,
+            "khoa_bi_mat_hex": chu_khoa_bi_mat_di,
+            "khoa_cong_khai_b64": chu_khoa_cong_khai_di,
         }
     }
-    store["active_key_id"] = key_id
-    _save_store(store)
-    _append_audit(f"Created keypair: {key_id}")
+    du_lieu_luu["id_khoa_dang_dung"] = id_khoa
+    _luu_du_lieu(du_lieu_luu)
+    _ghi_nhat_ky(f"Đã tạo cặp khóa mới có tên: {id_khoa}")
 
 
-def get_active_key_id() -> str:
-    store = _load_store()
-    key_id = store.get("active_key_id")
-    if not key_id:
-        raise RuntimeError("Chưa có active_key_id trong key store")
-    return key_id
+def lay_id_khoa_dang_dung() -> str:
+    du_lieu_luu = _doc_du_lieu_luu_tru()
+    id_khoa = du_lieu_luu.get("id_khoa_dang_dung")
+    if not id_khoa:
+        raise RuntimeError("Hệ thống chưa ghi nhận đang dùng khóa nào")
+    return id_khoa
 
 
-def get_current_signing_key() -> dict:
-    store = _load_store()
-    key_id = store.get("active_key_id")
-    if not key_id or key_id not in store["keys"]:
-        raise RuntimeError("Không tìm thấy khóa ký hiện hành")
-    key_data = store["keys"][key_id]
-    return {"key_id": key_id, **key_data}
+def lay_khoa_ky_hien_tai() -> dict:
+    du_lieu_luu = _doc_du_lieu_luu_tru()
+    id_khoa = du_lieu_luu.get("id_khoa_dang_dung")
+    if not id_khoa or id_khoa not in du_lieu_luu.get("danh_sach_khoa", {}):
+        raise RuntimeError("Không tìm thấy khóa ký (khóa bí mật) hiện hành")
+    thong_tin_khoa = du_lieu_luu["danh_sach_khoa"][id_khoa]
+    return {"id_khoa": id_khoa, **thong_tin_khoa}
 
 
-def get_public_keys(key_id: str) -> dict:
-    store = _load_store()
-    if key_id not in store["keys"]:
-        raise KeyError(f"Không tồn tại key_id: {key_id}")
-    key_data = store["keys"][key_id]
+def lay_khoa_cong_khai(id_khoa: str) -> dict:
+    du_lieu_luu = _doc_du_lieu_luu_tru()
+    if id_khoa not in du_lieu_luu.get("danh_sach_khoa", {}):
+        raise KeyError(f"Không tồn tại khóa nào có tên: {id_khoa}")
+    thong_tin_khoa = du_lieu_luu["danh_sach_khoa"][id_khoa]
     return {
-        "ed_public_pem": key_data["ed25519"]["public_pem"],
-        "di_public_b64": key_data["dilithium"]["public_b64"],
-        "di_algorithm": key_data["dilithium"]["algorithm"],
+        "khoa_cong_khai_ed_chu": thong_tin_khoa["ed25519"]["khoa_cong_khai_chu"],
+        "khoa_cong_khai_di_b64": thong_tin_khoa["dilithium"]["khoa_cong_khai_b64"],
+        "thuat_toan_di": thong_tin_khoa["dilithium"]["ten_thuat_toan"],
     }
 
 
-def get_private_keys_for_signing() -> dict:
-    current = get_current_signing_key()
+def lay_khoa_bi_mat_de_ky() -> dict:
+    khoa_hien_tai = lay_khoa_ky_hien_tai()
     return {
-        "key_id": current["key_id"],
-        "ed_private_pem": current["ed25519"]["private_pem"],
-        "di_private_hex": current["dilithium"]["private_hex"],
-        "di_algorithm": current["dilithium"]["algorithm"],
+        "id_khoa": khoa_hien_tai["id_khoa"],
+        "khoa_bi_mat_ed_chu": khoa_hien_tai["ed25519"]["khoa_bi_mat_chu"],
+        "khoa_bi_mat_di_hex": khoa_hien_tai["dilithium"]["khoa_bi_mat_hex"],
+        "thuat_toan_di": khoa_hien_tai["dilithium"]["ten_thuat_toan"],
     }

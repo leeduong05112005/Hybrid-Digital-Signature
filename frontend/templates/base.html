@@ -38,8 +38,8 @@
       </div>
     </div>
     <nav class="max-w-7xl mx-auto px-6 pb-4 flex flex-wrap gap-x-8 gap-y-3 text-sm font-semibold text-slate-700">
-      <a href="{{ url_for('sign_page') }}" class="nav-item {% if request.path == '/sign' or request.path == '/' %}active{% endif %}">Sinh chữ ký</a>
-      <a href="{{ url_for('verify_page') }}" class="nav-item {% if request.path == '/verify' %}active{% endif %}">Xác thực chữ ký</a>
+      <a href="{{ url_for('trang_ky_tai_lieu') }}" class="nav-item {% if request.path == '/sign' or request.path == '/' %}active{% endif %}">Sinh chữ ký</a>
+      <a href="{{ url_for('trang_kiem_tra') }}" class="nav-item {% if request.path == '/verify' %}active{% endif %}">Xác thực chữ ký</a>
     </nav>
   </header>
 
